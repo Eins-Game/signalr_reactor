@@ -22,6 +22,15 @@ class _ReactorWidgetState<T> extends State<ReactorWidget> {
     super.initState();
 
     widget.listener.onUpdate = (emittedEvent) {
+      if (widget.filterEvents != null) {
+        widget.filterEvents.forEach((filter) {
+          if (emittedEvent.eventName == filter) {
+            setState(() {
+              accessibleValue = emittedEvent.value;
+            });
+          }
+        });
+      }
       setState(() {
         accessibleValue = emittedEvent.value;
       });
