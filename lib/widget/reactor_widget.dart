@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
 import 'package:signalr_reactor/components/reactor_listener.dart';
 import 'package:signalr_reactor/widget/reactor_widget_builder.dart';
 
@@ -17,9 +18,15 @@ class _ReactorWidgetState<T> extends State<ReactorWidget> {
 
   T accessibleValue;
 
+  var logger = Logger();
+
   @override
   void initState() {
     super.initState();
+
+    if (widget.listener.onUpdate != null) {
+      logger.w("Your onUpdate function will be overridden. For onChange listening, attach a listener to your ReactorListener.");
+    }
 
     widget.listener.onUpdate = (emittedEvent) {
       if (widget.filterEvents != null) {
@@ -30,10 +37,11 @@ class _ReactorWidgetState<T> extends State<ReactorWidget> {
             });
           }
         });
+      } else {
+        setState(() {
+          accessibleValue = emittedEvent.value;
+        });
       }
-      setState(() {
-        accessibleValue = emittedEvent.value;
-      });
     };
   }
 

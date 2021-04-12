@@ -2,23 +2,26 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:logger/logger.dart';
 import 'package:signalr_core/signalr_core.dart';
 import 'package:signalr_reactor/components/reactor_event.dart';
 import 'package:signalr_reactor/model/reactor_emitted_event.dart';
 
 class ReactorListener<T> extends ChangeNotifier {
-  ReactorListener({@required this.connection, @required this.emitMethodName, @required this.onUpdate}) {
+  ReactorListener({@required this.connection, @required this.emitMethodName}) {
     connection.start();
   }
 
   final HubConnection connection;
   final String emitMethodName;
+  
   ValueChanged<ReactorEmittedEvent> onUpdate;
 
-  List<ReactorEvent> registeredEvents = [];
+  List<ReactorEvent> _registeredEvents = [];
+  var logger = Logger();
   
   void registerEvent(ReactorEvent event) {
-    registeredEvents.add(event);
+    _registeredEvents.add(event);
 
     this.connection.on(event.eventName, (message) {
       _updateEvent(event.eventName, json.decode(message.first));
@@ -26,9 +29,9 @@ class ReactorListener<T> extends ChangeNotifier {
   }
 
   void removeEvent(ReactorEvent event) {
-    for (var registeredEvent in registeredEvents) {
+    for (var registeredEvent in _registeredEvents) {
       if (registeredEvent.eventName == event.eventName) {
-        registeredEvents.remove(registeredEvent);
+        _registeredEvents.remove(registeredEvent);
       }
     }
 
@@ -36,10 +39,16 @@ class ReactorListener<T> extends ChangeNotifier {
   }
 
   Future<void> _updateEvent(String key, T updatedValue) async {
-    registeredEvents.forEach((element) async {
+    _registeredEvents.forEach((element) async {
       if (element.eventName == key) {
         await element.update(updatedValue);
-        this.onUpdate.call(ReactorEmittedEvent(element.eventName, updatedValue));
+
+        if (this.onUpdate != null) {
+          this.onUpdate.call(ReactorEmittedEvent(element.eventName, updatedValue));
+        } else {
+          logger.w("No onUpdate function registered, event thrown away.");
+        }
+
         notifyListeners();
       }
     });
@@ -52,7 +61,7 @@ class ReactorListener<T> extends ChangeNotifier {
   Future<T> getValueOfEvent(String key) async {
     var data;
 
-    for (var event in registeredEvents) {
+    for (var event in _registeredEvents) {
       if (event.eventName == key) {
         data = await event.getData();
       }
