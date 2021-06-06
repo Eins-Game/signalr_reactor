@@ -1,6 +1,6 @@
-# state_reactor
+# signalr_reactor
 
-Reactive state handling in a fast way
+Reactive state handling in a fast way with bindings to SignalR
 
 ## Getting Started
 
